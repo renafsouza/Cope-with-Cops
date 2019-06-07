@@ -2,6 +2,9 @@ Current idea: a game where you, in a car, run from the cops in a busy highway.
 Your goal is to kill the cops by causing them to crash into the other cars or something.
 
 
+- ask user to resize their terminal window.
+    "Please resize your terminal window to 80x43. (Current size: mxn.)"
+    "Done! Press any button to start." (And show playing instructions below.)
 - start by drawing the road itself
 
 
