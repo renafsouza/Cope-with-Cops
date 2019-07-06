@@ -10,9 +10,13 @@ playerRow = 20
 main = do
     prepareConsole
     drawRoad 0 (screenWidth-1) screenHeight
-    loop 20
+    loop 20 [Car 0 4, Car 0 15, Car 0 30] 0
 
-loop playerColumn = do
+loop :: Int -> [Car] -> Int -> IO ()
+loop playerColumn incomingCars time = do
+    disdrawCars incomingCars
+    incomingCars <- return (updateIncomingCars incomingCars)
+    drawCars incomingCars
     mvar <- newEmptyMVar
     id1 <- forkIO (readInput mvar)
     id2 <- forkIO (wait1Sec mvar)
@@ -20,7 +24,22 @@ loop playerColumn = do
     killThread id1
     killThread id2
     playerColumn <- movePlayer playerColumn (if c == 'a' then -1 else if c=='d' then 1 else 0)
-    loop playerColumn
+    loop playerColumn incomingCars (time + 1)
+
+updateIncomingCars :: [Car] -> [Car]
+updateIncomingCars []     = []
+updateIncomingCars (x:xs) = (updateIncomingCar x):(updateIncomingCars xs)
+    where updateIncomingCar (Car row column) = Car (row + 1) column
+
+disdrawCars [] = return ()
+disdrawCars ((Car row col):xs) = do
+    eraseCar row col
+    disdrawCars xs
+
+drawCars [] = return ()
+drawCars ((Car row col):xs) = do
+    drawCar row col
+    drawCars xs
 
 wait1Sec mvar = do
     threadDelay (10^6)
@@ -69,3 +88,8 @@ drawRoad column1 column2 length = do
                 setSGR sgrCommandList
                 putChar ' '
             sgrCommandList = [Reset, SetSwapForegroundBackground True]
+
+data Car = Car {
+    carRow :: Int,
+    carColumn :: Int
+}
