@@ -14,9 +14,7 @@ main = do
 
 loop :: Int -> [Car] -> Int -> IO ()
 loop playerColumn incomingCars time = do
-    disdrawCars incomingCars
-    incomingCars <- return (updateIncomingCars incomingCars)
-    drawCars incomingCars
+    incomingCars <- updateIncomingCars incomingCars
     mvar <- newEmptyMVar
     id1 <- forkIO (readInput mvar)
     id2 <- forkIO (wait1Sec mvar)
@@ -26,9 +24,15 @@ loop playerColumn incomingCars time = do
     playerColumn <- movePlayer playerColumn (if c == 'a' then -1 else if c=='d' then 1 else 0)
     loop playerColumn incomingCars (time + 1)
 
-updateIncomingCars :: [Car] -> [Car]
-updateIncomingCars []     = []
-updateIncomingCars (x:xs) = (updateIncomingCar x):(updateIncomingCars xs)
+updateIncomingCars incomingCars = do
+    disdrawCars incomingCars
+    incomingCars <- return (updateIncomingCarPositions incomingCars)
+    drawCars incomingCars
+    return incomingCars
+
+updateIncomingCarPositions :: [Car] -> [Car]
+updateIncomingCarPositions []     = []
+updateIncomingCarPositions (x:xs) = (updateIncomingCar x):(updateIncomingCarPositions xs)
     where updateIncomingCar (Car row column) = Car (row + 1) column
 
 disdrawCars [] = return ()
