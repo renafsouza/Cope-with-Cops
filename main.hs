@@ -10,18 +10,12 @@ playerRow = 20
 main = do
     prepareConsole
     drawRoad 0 (screenWidth-1) screenHeight
-    loop 20 [Car 0 4, Car 0 15, Car 0 30] 0
+    loop 20 [Car 0 15] 0
 
 loop :: Int -> [Car] -> Int -> IO ()
 loop playerColumn incomingCars time = do
     incomingCars <- updateIncomingCars incomingCars
-    mvar <- newEmptyMVar
-    id1 <- forkIO (readInput mvar)
-    id2 <- forkIO (wait1Sec mvar)
-    c <- takeMVar mvar
-    killThread id1
-    killThread id2
-    playerColumn <- movePlayer playerColumn (if c == 'a' then -1 else if c=='d' then 1 else 0)
+    playerColumn <- readInputAndUpdatePlayerPosition playerColumn
     loop playerColumn incomingCars (time + 1)
 
 updateIncomingCars incomingCars = do
@@ -29,6 +23,16 @@ updateIncomingCars incomingCars = do
     incomingCars <- return (updateIncomingCarPositions incomingCars)
     drawCars incomingCars
     return incomingCars
+
+readInputAndUpdatePlayerPosition playerColumn = do
+    mvar <- newEmptyMVar
+    id1 <- forkIO (readInput mvar)
+    id2 <- forkIO (wait1Sec mvar)
+    c <- takeMVar mvar
+    killThread id1
+    killThread id2
+    playerColumn <- movePlayer playerColumn (if c == 'a' then -1 else if c=='d' then 1 else 0)
+    return playerColumn
 
 updateIncomingCarPositions :: [Car] -> [Car]
 updateIncomingCarPositions []     = []
