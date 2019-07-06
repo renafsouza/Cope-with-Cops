@@ -1,19 +1,33 @@
+import System.IO
 import System.Console.ANSI
 import GHC.Conc
 
-main :: IO ()
-main = drawRoad 2 41 80
+screenWidth = 40
+screenHeight = 30
 
+main = do
+    prepareConsole
+    drawRoad 0 (screenWidth-1) screenHeight
+
+prepareConsole = do
+    hSetEcho stdin False
+    hideCursor
+    clearScreen
+    setCursorPosition 0 0
+
+{- A função drawRoad desenha (= inverte as cores de) duas colunas
+ - que recebe como argumentos.
+ -}
 drawRoad _       _       0      = return ()
 drawRoad column1 column2 length = do
     threadDelay 10000
-    setCursorColumn column1
-    setSGR sgrCommandList
-    putChar ' '
-    setCursorColumn column2
-    setSGR sgrCommandList
-    putChar ' '
+    colorCellAtColumn column1
+    colorCellAtColumn column2
     cursorDownLine 1
     drawRoad column1 column2 (length - 1)
-    where
-        sgrCommandList = [Reset, SetSwapForegroundBackground True]
+        where
+            colorCellAtColumn column = do
+                setCursorColumn column
+                setSGR sgrCommandList
+                putChar ' '
+            sgrCommandList = [Reset, SetSwapForegroundBackground True]
