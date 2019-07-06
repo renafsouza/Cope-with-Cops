@@ -1,15 +1,53 @@
 import System.IO
 import System.Console.ANSI
 import GHC.Conc
+import Control.Concurrent
 
 screenWidth = 40
 screenHeight = 30
+playerRow = 20
 
 main = do
     prepareConsole
     drawRoad 0 (screenWidth-1) screenHeight
+    loop 20
+
+loop playerColumn = do
+    mvar <- newEmptyMVar
+    id1 <- forkIO (readInput mvar)
+    id2 <- forkIO (wait1Sec mvar)
+    c <- takeMVar mvar
+    killThread id1
+    killThread id2
+    playerColumn <- movePlayer playerColumn (if c == 'a' then -1 else if c=='d' then 1 else 0)
+    loop playerColumn
+
+wait1Sec mvar = do
+    threadDelay (10^6)
+    putMVar mvar 'a'
+
+readInput mvar = do
+    c <- getChar
+    putMVar mvar c
+
+movePlayer column delta = do
+    eraseCar playerRow column
+    drawCar playerRow (column + delta)
+    return (column + delta)
+    
+drawCar row column = do
+    setCursorPosition row column
+    setSGR [SetSwapForegroundBackground True]
+    putChar ' '
+
+eraseCar row column = do
+    setCursorPosition row column
+    setSGR [Reset]
+    putChar ' '
+    
 
 prepareConsole = do
+    hSetBuffering stdin NoBuffering
     hSetEcho stdin False
     hideCursor
     clearScreen
