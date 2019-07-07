@@ -7,6 +7,7 @@ import Data.List
 screenWidth  = 40
 screenHeight = 43
 tickPeriod   = 9^5    -- in milliseconds
+copVerticalMovementPeriod = 8       -- in ticks
 
 playerCar = Car {
     carRow    = 28,
@@ -17,12 +18,14 @@ playerCar = Car {
 main = do
     prepareConsole
     drawRoad 0 (screenWidth-1) screenHeight
-    loop playerCar [] 0
+    loop playerCar (repeat 20) Nothing [] 0
 
-loop playerCar incomingCars time = do
+loop playerCar positionHistory cop incomingCars time = do
     incomingCars <- updateIncomingCars incomingCars time playerCar
     playerCar <- readInputAndUpdatePlayerPosition playerCar
-    loop playerCar incomingCars (time + 1)
+    positionHistory <- return $ (carColumn playerCar):positionHistory
+    cop <- updateCop cop positionHistory time
+    loop playerCar positionHistory cop incomingCars (time + 1)
 
 updateIncomingCars incomingCars time playerCar = do
     mapM eraseCar incomingCars
@@ -61,6 +64,35 @@ updateIncomingCarPositions carList = map updateIncomingCar carList
             carColumn = carColumn car,
             carColor  = carColor  car
           }
+
+updateCop Nothing       positionHistory time = do
+    drawCop positionHistory (screenHeight - carRow playerCar - 2) time
+
+updateCop (Just copCar) positionHistory time =
+    let
+        newDistance = carRow copCar - carRow playerCar - (if time `mod` copVerticalMovementPeriod == 0 then 1 else 0)
+    in do
+    eraseCar copCar
+    drawCop positionHistory newDistance time
+    
+
+drawCop positionHistory distance time =
+    let
+        copCar = Car {
+            carRow    = carRow playerCar + distance,
+            carColumn = positionHistory !! distance,
+            carColor = White
+        }
+    in do
+        drawCar copCar
+        if time `mod` 2 == 1 then do
+            applySGRToCell [SetColor Background Vivid Red] (carRow copCar + 1) (carColumn copCar)
+            applySGRToCell [SetColor Background Vivid Blue] (carRow copCar + 1) (carColumn copCar + 1)
+        else do
+            applySGRToCell [SetColor Background Vivid Blue] (carRow copCar + 1) (carColumn copCar)
+            applySGRToCell [SetColor Background Vivid Red] (carRow copCar + 1) (carColumn copCar + 1)
+        return (Just copCar)
+    
 
 waitTick mvar = do
     threadDelay tickPeriod
