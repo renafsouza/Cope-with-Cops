@@ -19,15 +19,29 @@ main = do
     loop playerCar [Car {carRow = 0, carColumn = 15, carColor = Blue}] 0
 
 loop playerCar incomingCars time = do
-    incomingCars <- updateIncomingCars incomingCars
+    incomingCars <- updateIncomingCars incomingCars time
     playerCar <- readInputAndUpdatePlayerPosition playerCar
     loop playerCar incomingCars (time + 1)
 
-updateIncomingCars incomingCars = do
+updateIncomingCars incomingCars time = do
     mapM eraseCar incomingCars
     incomingCars <- return (updateIncomingCarPositions incomingCars)
+    incomingCars <- return (maybeSpawnANewIncomingCar incomingCars time)
     mapM drawCar incomingCars
     return incomingCars
+
+maybeSpawnANewIncomingCar incomingCarList currentTime =
+    if currentTime `mod` 5 == 0 then
+        let
+            newCar = Car {
+                carRow = 0,
+                carColumn = 1 + ((currentTime * 3) `mod` 39),
+                carColor = [Black, Red, Green, Yellow, Blue, Cyan] !! ((currentTime `div` 5) `mod` 6)
+            }
+        in
+            newCar:incomingCarList
+    else
+        incomingCarList
 
 readInputAndUpdatePlayerPosition playerCar = do
     mvar <- newEmptyMVar
