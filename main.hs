@@ -63,23 +63,17 @@ movePlayer column delta = do
     drawCar (Car playerRow (column + delta))
     return (column + delta)
 
-carHeight = 2
-carWidth = 2
-drawCar (Car row column) = do
-    paintCell  row     column
-    paintCell  row    (column+1)
-    paintCell (row+1)  column
-    paintCell (row+1) (column+1)
-        where
-            paintCell row column = applySGRToCell [SetSwapForegroundBackground True] row column
-                
-eraseCar (Car row column) = do
-    eraseCell  row     column
-    eraseCell  row    (column+1)
-    eraseCell (row+1)  column
-    eraseCell (row+1) (column+1)
-        where
-            eraseCell row column = applySGRToCell [] row column
+    
+drawCar  car = applySGRToCarCells car [SetSwapForegroundBackground True]
+eraseCar car = applySGRToCarCells car []
+
+applySGRToCarCells (Car row column) sgrCommandList = do
+    applySGRToCell sgrCommandList   row       column
+    applySGRToCell sgrCommandList  (row + 1)  column
+    applySGRToCell sgrCommandList  (row + 2)  column
+    applySGRToCell sgrCommandList   row      (column + 1)
+    applySGRToCell sgrCommandList  (row + 1) (column + 1)
+    applySGRToCell sgrCommandList  (row + 2) (column + 1)
 
 applySGRToCell sgrCommandList row column = do
     setCursorPosition row column
