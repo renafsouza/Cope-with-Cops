@@ -67,7 +67,7 @@ updateIncomingCarPositions carList = map updateIncomingCar carList
           }
 
 updateCop Nothing       positionHistory time = do
-    drawCop positionHistory (screenHeight - carRow playerCar - 2) time
+    drawCop positionHistory (screenHeight - carRow playerCar - 3) time
 
 updateCop (Just copCar) positionHistory time =
     let
