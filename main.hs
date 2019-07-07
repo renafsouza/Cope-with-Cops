@@ -6,8 +6,9 @@ import Data.List
 
 screenWidth  = 40
 screenHeight = 43
-tickPeriod   = 9^5    -- in milliseconds
+tickPeriod   = 9^5                  -- in milliseconds
 copVerticalMovementPeriod = 8       -- in ticks
+incomingCarSpeed = 2                -- in cells per tick
 
 playerCar = Car {
     carRow    = 28,
@@ -60,7 +61,7 @@ readInputAndUpdatePlayerPosition playerCar = do
 
 updateIncomingCarPositions carList = map updateIncomingCar carList
     where updateIncomingCar car = Car {
-            carRow    = carRow    car + 1,
+            carRow    = carRow    car + incomingCarSpeed,
             carColumn = carColumn car,
             carColor  = carColor  car
           }
