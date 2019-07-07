@@ -2,6 +2,7 @@ import System.IO
 import System.Console.ANSI
 import GHC.Conc
 import Control.Concurrent
+import Data.List
 
 screenWidth  = 40
 screenHeight = 43
@@ -19,14 +20,15 @@ main = do
     loop playerCar [] 0
 
 loop playerCar incomingCars time = do
-    incomingCars <- updateIncomingCars incomingCars time
+    incomingCars <- updateIncomingCars incomingCars time playerCar
     playerCar <- readInputAndUpdatePlayerPosition playerCar
     loop playerCar incomingCars (time + 1)
 
-updateIncomingCars incomingCars time = do
+updateIncomingCars incomingCars time playerCar = do
     mapM eraseCar incomingCars
     incomingCars <- return (updateIncomingCarPositions incomingCars)
     incomingCars <- return (maybeSpawnANewIncomingCar incomingCars time)
+    if or (map (checkCollision playerCar) incomingCars) then error "Game over: you crashed!" else return ()
     mapM drawCar incomingCars
     return incomingCars
 
@@ -79,6 +81,17 @@ movePlayer playerCar delta =
     drawCar newPlayerCar
     return  newPlayerCar
 
+checkCollision carA carB =
+    let
+        rowA    = carRow    carA
+        columnA = carColumn carA
+        rowB    = carRow    carB
+        columnB = carColumn carB
+
+        isSorted l = l == sort l
+    in
+        (isSorted [rowA, rowB, rowA+2] || isSorted [rowB, rowA, rowB+2]) &&
+        (isSorted [columnA, columnB, columnA+1] || isSorted [columnB, columnA, columnB+1])
 
 drawCar  car = applySGRToCarCells car [SetColor Background Vivid (carColor car)]
 eraseCar car = applySGRToCarCells car []
