@@ -3,21 +3,25 @@ import System.Console.ANSI
 import GHC.Conc
 import Control.Concurrent
 
-screenWidth = 40
+screenWidth  = 40
 screenHeight = 30
-playerRow = 20
-tickPeriod = 9^5    -- in milliseconds
+tickPeriod   = 9^5    -- in milliseconds
+
+playerCar = Car {
+    carRow    = 20,
+    carColumn = 20,
+    carColor  = Red
+}
 
 main = do
     prepareConsole
     drawRoad 0 (screenWidth-1) screenHeight
-    loop 20 [Car 0 15] 0
+    loop playerCar [Car {carRow = 0, carColumn = 15, carColor = Blue}] 0
 
-loop :: Int -> [Car] -> Int -> IO ()
-loop playerColumn incomingCars time = do
+loop playerCar incomingCars time = do
     incomingCars <- updateIncomingCars incomingCars
-    playerColumn <- readInputAndUpdatePlayerPosition playerColumn
-    loop playerColumn incomingCars (time + 1)
+    playerCar <- readInputAndUpdatePlayerPosition playerCar
+    loop playerCar incomingCars (time + 1)
 
 updateIncomingCars incomingCars = do
     disdrawCars incomingCars
@@ -25,29 +29,33 @@ updateIncomingCars incomingCars = do
     drawCars incomingCars
     return incomingCars
 
-readInputAndUpdatePlayerPosition playerColumn = do
+readInputAndUpdatePlayerPosition playerCar = do
     mvar <- newEmptyMVar
     id1 <- forkIO (readInput mvar)
     id2 <- forkIO (waitTick mvar)
     c <- takeMVar mvar
     killThread id1
     killThread id2
-    playerColumn <- movePlayer playerColumn (if c == 'a' then -2 else if c=='d' then 2 else 0)
-    return playerColumn
+    playerCar <- movePlayer playerCar (if c == 'a' then -2 else if c=='d' then 2 else 0)
+    return playerCar
 
 updateIncomingCarPositions :: [Car] -> [Car]
 updateIncomingCarPositions []     = []
 updateIncomingCarPositions (x:xs) = (updateIncomingCar x):(updateIncomingCarPositions xs)
-    where updateIncomingCar (Car row column) = Car (row + 1) column
+    where updateIncomingCar car = Car {
+            carRow    = carRow    car + 1,
+            carColumn = carColumn car,
+            carColor  = carColor  car
+          }
 
 disdrawCars [] = return ()
-disdrawCars ((Car row col):xs) = do
-    eraseCar (Car row col)
+disdrawCars (car:xs) = do
+    eraseCar car
     disdrawCars xs
 
 drawCars [] = return ()
-drawCars ((Car row col):xs) = do
-    drawCar (Car row col)
+drawCars (car:xs) = do
+    drawCar car
     drawCars xs
 
 waitTick mvar = do
@@ -58,22 +66,32 @@ readInput mvar = do
     c <- getChar
     putMVar mvar c
 
-movePlayer column delta = do
-    eraseCar (Car playerRow column)
-    drawCar (Car playerRow (column + delta))
-    return (column + delta)
+movePlayer playerCar delta =
+    let newPlayerCar = Car {
+                carRow    = carRow    playerCar,
+                carColumn = carColumn playerCar + delta,
+                carColor  = carColor  playerCar
+        }
+    in do
+    eraseCar playerCar
+    drawCar newPlayerCar
+    return  newPlayerCar
 
-    
-drawCar  car = applySGRToCarCells car [SetSwapForegroundBackground True]
+
+drawCar  car = applySGRToCarCells car [SetColor Background Vivid (carColor car)]
 eraseCar car = applySGRToCarCells car []
 
-applySGRToCarCells (Car row column) sgrCommandList = do
-    applySGRToCell sgrCommandList   row       column
-    applySGRToCell sgrCommandList  (row + 1)  column
-    applySGRToCell sgrCommandList  (row + 2)  column
-    applySGRToCell sgrCommandList   row      (column + 1)
-    applySGRToCell sgrCommandList  (row + 1) (column + 1)
-    applySGRToCell sgrCommandList  (row + 2) (column + 1)
+applySGRToCarCells car sgrCommandList =
+    let
+        row    = carRow    car
+        column = carColumn car
+    in do
+        applySGRToCell sgrCommandList  row       column
+        applySGRToCell sgrCommandList (row + 1)  column
+        applySGRToCell sgrCommandList (row + 2)  column
+        applySGRToCell sgrCommandList  row      (column + 1)
+        applySGRToCell sgrCommandList (row + 1) (column + 1)
+        applySGRToCell sgrCommandList (row + 2) (column + 1)
 
 applySGRToCell sgrCommandList row column = do
     setCursorPosition row column
@@ -106,6 +124,7 @@ drawRoad column1 column2 length = do
             sgrCommandList = [Reset, SetSwapForegroundBackground True]
 
 data Car = Car {
-    carRow :: Int,
-    carColumn :: Int
+    carRow    :: Int,
+    carColumn :: Int,
+    carColor  :: Color
 }
