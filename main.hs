@@ -8,7 +8,7 @@ screenHeight = 43
 tickPeriod   = 9^5    -- in milliseconds
 
 playerCar = Car {
-    carRow    = 35,
+    carRow    = 28,
     carColumn = 20,
     carColor  = Red
 }
@@ -16,7 +16,7 @@ playerCar = Car {
 main = do
     prepareConsole
     drawRoad 0 (screenWidth-1) screenHeight
-    loop playerCar [Car {carRow = 0, carColumn = 15, carColor = Blue}] 0
+    loop playerCar [] 0
 
 loop playerCar incomingCars time = do
     incomingCars <- updateIncomingCars incomingCars time
