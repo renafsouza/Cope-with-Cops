@@ -6,6 +6,7 @@ import Control.Concurrent
 screenWidth = 40
 screenHeight = 30
 playerRow = 20
+tickPeriod = 9^5    -- in milliseconds
 
 main = do
     prepareConsole
@@ -27,7 +28,7 @@ updateIncomingCars incomingCars = do
 readInputAndUpdatePlayerPosition playerColumn = do
     mvar <- newEmptyMVar
     id1 <- forkIO (readInput mvar)
-    id2 <- forkIO (wait1Sec mvar)
+    id2 <- forkIO (waitTick mvar)
     c <- takeMVar mvar
     killThread id1
     killThread id2
@@ -49,9 +50,9 @@ drawCars ((Car row col):xs) = do
     drawCar row col
     drawCars xs
 
-wait1Sec mvar = do
-    threadDelay (10^6)
-    putMVar mvar 'a'
+waitTick mvar = do
+    threadDelay tickPeriod
+    putMVar mvar '\0'
 
 readInput mvar = do
     c <- getChar
