@@ -24,9 +24,9 @@ loop playerCar incomingCars time = do
     loop playerCar incomingCars (time + 1)
 
 updateIncomingCars incomingCars = do
-    disdrawCars incomingCars
+    mapM eraseCar incomingCars
     incomingCars <- return (updateIncomingCarPositions incomingCars)
-    drawCars incomingCars
+    mapM drawCar incomingCars
     return incomingCars
 
 readInputAndUpdatePlayerPosition playerCar = do
@@ -39,24 +39,12 @@ readInputAndUpdatePlayerPosition playerCar = do
     playerCar <- movePlayer playerCar (if c == 'a' then -2 else if c=='d' then 2 else 0)
     return playerCar
 
-updateIncomingCarPositions :: [Car] -> [Car]
-updateIncomingCarPositions []     = []
-updateIncomingCarPositions (x:xs) = (updateIncomingCar x):(updateIncomingCarPositions xs)
+updateIncomingCarPositions carList = map updateIncomingCar carList
     where updateIncomingCar car = Car {
             carRow    = carRow    car + 1,
             carColumn = carColumn car,
             carColor  = carColor  car
           }
-
-disdrawCars [] = return ()
-disdrawCars (car:xs) = do
-    eraseCar car
-    disdrawCars xs
-
-drawCars [] = return ()
-drawCars (car:xs) = do
-    drawCar car
-    drawCars xs
 
 waitTick mvar = do
     threadDelay tickPeriod
