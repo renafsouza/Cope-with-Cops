@@ -32,7 +32,7 @@ readInputAndUpdatePlayerPosition playerColumn = do
     c <- takeMVar mvar
     killThread id1
     killThread id2
-    playerColumn <- movePlayer playerColumn (if c == 'a' then -1 else if c=='d' then 1 else 0)
+    playerColumn <- movePlayer playerColumn (if c == 'a' then -2 else if c=='d' then 2 else 0)
     return playerColumn
 
 updateIncomingCarPositions :: [Car] -> [Car]
@@ -42,12 +42,12 @@ updateIncomingCarPositions (x:xs) = (updateIncomingCar x):(updateIncomingCarPosi
 
 disdrawCars [] = return ()
 disdrawCars ((Car row col):xs) = do
-    eraseCar row col
+    eraseCar (Car row col)
     disdrawCars xs
 
 drawCars [] = return ()
 drawCars ((Car row col):xs) = do
-    drawCar row col
+    drawCar (Car row col)
     drawCars xs
 
 waitTick mvar = do
@@ -59,20 +59,33 @@ readInput mvar = do
     putMVar mvar c
 
 movePlayer column delta = do
-    eraseCar playerRow column
-    drawCar playerRow (column + delta)
+    eraseCar (Car playerRow column)
+    drawCar (Car playerRow (column + delta))
     return (column + delta)
-    
-drawCar row column = do
+
+carHeight = 2
+carWidth = 2
+drawCar (Car row column) = do
+    paintCell  row     column
+    paintCell  row    (column+1)
+    paintCell (row+1)  column
+    paintCell (row+1) (column+1)
+        where
+            paintCell row column = applySGRToCell [SetSwapForegroundBackground True] row column
+                
+eraseCar (Car row column) = do
+    eraseCell  row     column
+    eraseCell  row    (column+1)
+    eraseCell (row+1)  column
+    eraseCell (row+1) (column+1)
+        where
+            eraseCell row column = applySGRToCell [] row column
+
+applySGRToCell sgrCommandList row column = do
     setCursorPosition row column
-    setSGR [SetSwapForegroundBackground True]
+    setSGR sgrCommandList
     putChar ' '
 
-eraseCar row column = do
-    setCursorPosition row column
-    setSGR [Reset]
-    putChar ' '
-    
 
 prepareConsole = do
     hSetBuffering stdin NoBuffering
