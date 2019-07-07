@@ -110,16 +110,21 @@ readInput mvar = do
     c <- getChar
     putMVar mvar c
 
-movePlayer playerCar delta =
-    let newPlayerCar = Car {
-                carRow    = carRow    playerCar,
-                carColumn = carColumn playerCar + delta,
-                carColor  = carColor  playerCar
+movePlayer currentPlayerCar delta =
+    let maybeNewPlayerCar = Car {
+                carRow    = carRow    currentPlayerCar,
+                carColumn = carColumn currentPlayerCar + delta,
+                carColor  = carColor  currentPlayerCar
         }
+        actualNewPlayerCar =
+            if 1 < carRow maybeNewPlayerCar && carRow maybeNewPlayerCar < screenWidth - 1 then
+                maybeNewPlayerCar
+            else
+                currentPlayerCar
     in do
-    eraseCar playerCar
-    drawCar newPlayerCar
-    return  newPlayerCar
+        eraseCar currentPlayerCar
+        drawCar actualNewPlayerCar
+        return  actualNewPlayerCar
 
 checkCollision carA carB =
     let
