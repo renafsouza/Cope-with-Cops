@@ -25,7 +25,7 @@ loop playerCar positionHistory cop incomingCars time = do
     incomingCars <- updateIncomingCars incomingCars time playerCar
     playerCar <- readInputAndUpdatePlayerPosition playerCar
     positionHistory <- return $ (carColumn playerCar):positionHistory
-    cop <- updateCop cop positionHistory time
+    cop <- updateCop cop positionHistory time incomingCars
     loop playerCar positionHistory cop incomingCars (time + 1)
 
 updateIncomingCars incomingCars time playerCar = do
@@ -66,15 +66,19 @@ updateIncomingCarPositions carList = map updateIncomingCar carList
             carColor  = carColor  car
           }
 
-updateCop Nothing       positionHistory time = do
+updateCop  Nothing      positionHistory time incomingCars = do
     drawCop positionHistory (screenHeight - carRow playerCar - 3) time
 
-updateCop (Just copCar) positionHistory time =
+updateCop (Just copCar) positionHistory time incomingCars =
     let
         newDistance = carRow copCar - carRow playerCar - (if time `mod` copVerticalMovementPeriod == 0 then 1 else 0)
     in do
     eraseCar copCar
-    drawCop positionHistory newDistance time
+    if or (map (checkCollision copCar) incomingCars)
+        then return Nothing
+    else
+        drawCop positionHistory newDistance time
+    
     
 
 drawCop positionHistory distance time =
