@@ -4,11 +4,11 @@ import GHC.Conc
 import Control.Concurrent
 
 screenWidth  = 40
-screenHeight = 30
+screenHeight = 43
 tickPeriod   = 9^5    -- in milliseconds
 
 playerCar = Car {
-    carRow    = 20,
+    carRow    = 35,
     carColumn = 20,
     carColor  = Red
 }
