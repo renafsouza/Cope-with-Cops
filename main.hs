@@ -59,7 +59,10 @@ readInputAndUpdatePlayerPosition playerCar = do
     playerCar <- movePlayer playerCar (if c == 'a' then -2 else if c=='d' then 2 else 0)
     return playerCar
 
-updateIncomingCarPositions carList = map updateIncomingCar carList
+updateIncomingCarPositions [] = []
+updateIncomingCarPositions (x:xs)
+    | carRow x < screenHeight = (updateIncomingCar x) : (updateIncomingCarPositions xs)
+    | otherwise               =                          updateIncomingCarPositions xs
     where updateIncomingCar car = Car {
             carRow    = carRow    car + incomingCarSpeed,
             carColumn = carColumn car,
