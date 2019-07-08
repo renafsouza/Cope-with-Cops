@@ -9,11 +9,9 @@ import Data.Maybe
 
 screenWidth  = 40
 screenHeight = 43
-tickPeriod   = 9^5                  -- in milliseconds
 copVerticalMovementPeriod = 8       -- in ticks
 incomingCarSpeed = 2                -- in cells per tick
-carFrequency =10 -- percentage
-
+carFrequency = 15 -- percentage
 playerCar = Car {
     carRow    = 28,
     carColumn = 20,
@@ -23,26 +21,24 @@ playerCar = Car {
 main = do
     prepareConsole
     drawRoad 0 (screenWidth-1) screenHeight
-    loop playerCar (repeat 20) Nothing [] 0
+    tickPeriod <- return (10^5)
+    loop playerCar (repeat 20) Nothing [] 0 tickPeriod
 
-loop playerCar positionHistory cop incomingCars time = do
+
+loop playerCar positionHistory cop incomingCars time tickPeriod = do
+    applySGRToCell [] 0 screenWidth
+    putStr "score: "
+    print time
     incomingCars <- updateIncomingCars incomingCars time playerCar
-    playerCar <- readInputAndUpdatePlayerPosition playerCar
+    playerCar <- readInputAndUpdatePlayerPosition playerCar tickPeriod
     positionHistory <- return $ (carColumn playerCar):positionHistory
     (cop,incomingCars) <- updateCop cop positionHistory time incomingCars
-    loop playerCar positionHistory cop incomingCars (time + 1)
+    loop playerCar positionHistory cop incomingCars (time + 1) (tickPeriod -150)
 
 
 updateIncomingCars incomingCars time playerCar = do
     if or (map (checkCollision playerCar) incomingCars) then do 
-        setSGR []
-        setCursorPosition (quot screenHeight 2) ((quot screenWidth 2)-16)
-        putStr "Parabéns seu idiota, você bateu!"
-        id <- forkIO (explode 27 ((carColumn playerCar)-2) 6 100) 
-        a<-getChar
-        killThread id
-        setCursorPosition (screenHeight+1) 0
-        exitSuccess
+        gameOver time playerCar
     else return ()
     mapM eraseCar incomingCars
     incomingCars <- return (updateIncomingCarPositions incomingCars)
@@ -50,15 +46,35 @@ updateIncomingCars incomingCars time playerCar = do
     mapM drawCar incomingCars
     return incomingCars
 
+gameOver time playerCar = do
+    setSGR []
+    setCursorPosition (quot screenHeight 2) ((quot screenWidth 2)-16)
+    putStr "Parabéns seu idiota, você bateu!"
+    setCursorPosition ((quot screenHeight 2)+1) ((quot screenWidth 2)-4)
+    putStr "score: "
+    print time
+    id <- forkIO (explode 27 ((carColumn playerCar)-2) 6 (-1)) 
+    waitForZero
+    killThread id
+    setCursorPosition (screenHeight+1) 0
+    exitSuccess
+
+waitForZero = do
+    a<-getChar
+    if a == '0' then do
+        return ()
+    else do
+        waitForZero
+
 maybeSpawnANewIncomingCar incomingCarList currentTime = do
     rn <- randomChance
-    j <- randomColumn
+    j <- randomColumn 
     if rn<carFrequency then do
-        return (newCar 0 j :incomingCarList)
+        return (newCar 0 (j*2) :incomingCarList)
     else do
         return incomingCarList
     where
-        randomColumn = randomRIO (1, screenWidth-3) -- TODO: use the correct range
+        randomColumn = randomRIO (1, (quot screenWidth 2)-2) -- TODO: use the correct range
         randomChance = randomRIO (0, screenWidth) -- TODO: use range from 0 to 100
         newCar i j= Car {
                 carRow = i,
@@ -66,11 +82,10 @@ maybeSpawnANewIncomingCar incomingCarList currentTime = do
                 carColor = [Black, Red, Green, Yellow, Blue, Cyan] !! (j `mod` 6)
             }
 
-
-readInputAndUpdatePlayerPosition playerCar = do
+readInputAndUpdatePlayerPosition playerCar tickPeriod = do
     mvar <- newEmptyMVar
     id1 <- forkIO (readInput mvar)
-    id2 <- forkIO (waitTick mvar)
+    id2 <- forkIO (waitTick mvar tickPeriod)
     c <- takeMVar mvar
     killThread id1
     killThread id2
@@ -107,6 +122,8 @@ updateCop (Just copCar) positionHistory time incomingCars = do
             incomingCars <- return (incomingCars \\ [fromJust collidingCar])
             explode (carRow copCar) ((carColumn copCar)-2) 6 10 
             return (Nothing, incomingCars)
+    else if newDistance<3 then do
+        gameOver time copCar
     else do
         copCar <- drawCop positionHistory newDistance time
         return (copCar, incomingCars)
@@ -132,7 +149,7 @@ drawCop positionHistory distance time =
         return (Just copCar)
     
 
-waitTick mvar = do
+waitTick mvar tickPeriod = do
     threadDelay tickPeriod
     putMVar mvar '\0'
 
@@ -147,7 +164,7 @@ movePlayer currentPlayerCar delta =
                 carColor  = carColor  currentPlayerCar
         }
         actualNewPlayerCar =
-            if 1 < carRow maybeNewPlayerCar && carRow maybeNewPlayerCar < screenWidth - 1 then
+            if 1 < carColumn maybeNewPlayerCar && carColumn maybeNewPlayerCar < screenWidth - 2 then
                 maybeNewPlayerCar
             else
                 currentPlayerCar
@@ -225,12 +242,17 @@ clearBlock row column count count2 = do
     clearL row column count
     clearBlock (row+1) column count (count2-1)
 
+explode row column size (-1) = do
+    explodeBlock row column size size
+    threadDelay (10^5)
+    explode row column size (-1)
+
 explode row column size 0 = do
     clearBlock row column size size
     return()
 explode row column size ticks = do
     explodeBlock row column size size
-    threadDelay tickPeriod
+    threadDelay (10^5)
     explode row column size (ticks-1)
 
 randomColor row column = do
