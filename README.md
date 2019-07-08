@@ -5,7 +5,7 @@ Written by [renafsouza](https://github.com/renafsouza) and I for college.
 Playing instructions:
 1. Maximize your terminal window. (Most importantly, make it at least 43 rows high.)
 2. Run ```runghc main.hs```. (Compiling the game with `ghc` causes it to lose its explosion effects, for some reason.)
-3. Use the `A` and `D` keys to move.
+3. Use the `A` and `D` keys to steer.
 
 TODO
 ------------
