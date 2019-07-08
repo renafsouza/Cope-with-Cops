@@ -3,12 +3,15 @@ import System.Console.ANSI
 import GHC.Conc
 import Control.Concurrent
 import Data.List
+import System.Random
+import System.Exit
 
 screenWidth  = 40
 screenHeight = 43
 tickPeriod   = 9^5                  -- in milliseconds
 copVerticalMovementPeriod = 8       -- in ticks
 incomingCarSpeed = 2                -- in cells per tick
+carFrequency =10 -- percentage
 
 playerCar = Car {
     carRow    = 28,
@@ -28,26 +31,39 @@ loop playerCar positionHistory cop incomingCars time = do
     cop <- updateCop cop positionHistory time incomingCars
     loop playerCar positionHistory cop incomingCars (time + 1)
 
+
 updateIncomingCars incomingCars time playerCar = do
+    if or (map (checkCollision playerCar) incomingCars) then do 
+        setSGR []
+        setCursorPosition (quot screenHeight 2) ((quot screenWidth 2)-16)
+        putStr "Parabéns seu idiota, você bateu!"
+        explode 27 ((carColumn playerCar)-2) 6
+        a<-getChar
+        setCursorPosition (screenHeight+1) 0
+        exitSuccess
+    else return ()
     mapM eraseCar incomingCars
     incomingCars <- return (updateIncomingCarPositions incomingCars)
-    incomingCars <- return (maybeSpawnANewIncomingCar incomingCars time)
-    if or (map (checkCollision playerCar) incomingCars) then error "Game over: you crashed!" else return ()
+    incomingCars <- (maybeSpawnANewIncomingCar incomingCars time)
     mapM drawCar incomingCars
     return incomingCars
 
-maybeSpawnANewIncomingCar incomingCarList currentTime =
-    if currentTime `mod` 5 == 0 then
-        let
-            newCar = Car {
-                carRow = 0,
-                carColumn = 1 + ((currentTime * 3) `mod` 39),
+maybeSpawnANewIncomingCar incomingCarList currentTime = do
+    rn <- randomChance
+    j <- randomColumn
+    if rn<carFrequency then do
+        return (newCar 0 j :incomingCarList)
+    else do
+        return incomingCarList
+    where
+        randomColumn = randomRIO (1, screenWidth-3) -- TODO: use the correct range
+        randomChance = randomRIO (0, screenWidth) -- TODO: use range from 0 to 100
+        newCar i j= Car {
+                carRow = i,
+                carColumn = j,
                 carColor = [Black, Red, Green, Yellow, Blue, Cyan] !! ((currentTime `div` 5) `mod` 6)
             }
-        in
-            newCar:incomingCarList
-    else
-        incomingCarList
+
 
 readInputAndUpdatePlayerPosition playerCar = do
     mvar <- newEmptyMVar
@@ -165,6 +181,34 @@ prepareConsole = do
     hideCursor
     clearScreen
     setCursorPosition 0 0
+explodeLine row column 0 = do
+    return ()
+
+explodeLine row column count = do
+    randomColor row column
+    explodeLine row (column+1) (count-1)
+
+explodeBlock row column count 0= do
+    return ()
+
+explodeBlock row column count count2 = do
+    explodeLine row column count
+    explodeBlock (row+1) column count (count2-1)
+
+explode row column size = do
+    explodeBlock row column size size
+    explode row column size
+
+randomColor row column = do
+    rn <- randomChance
+    if rn<15 then do
+        applySGRToCell [SetColor Background Vivid Red] row column
+    else if rn>35 then do 
+        applySGRToCell [SetColor Background Vivid Yellow] row column
+    else do
+        applySGRToCell [] row column
+    where
+        randomChance = randomRIO (0, screenWidth) -- TODO: use range from 0 to 100
 
 {- A função drawRoad desenha (= inverte as cores de) duas colunas
  - que recebe como argumentos.
