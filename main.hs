@@ -5,6 +5,7 @@ import Control.Concurrent
 import Data.List
 import System.Random
 import System.Exit
+import Data.Maybe
 
 screenWidth  = 40
 screenHeight = 43
@@ -28,7 +29,7 @@ loop playerCar positionHistory cop incomingCars time = do
     incomingCars <- updateIncomingCars incomingCars time playerCar
     playerCar <- readInputAndUpdatePlayerPosition playerCar
     positionHistory <- return $ (carColumn playerCar):positionHistory
-    cop <- updateCop cop positionHistory time incomingCars
+    (cop,incomingCars) <- updateCop cop positionHistory time incomingCars
     loop playerCar positionHistory cop incomingCars (time + 1)
 
 
@@ -37,8 +38,9 @@ updateIncomingCars incomingCars time playerCar = do
         setSGR []
         setCursorPosition (quot screenHeight 2) ((quot screenWidth 2)-16)
         putStr "Parabéns seu idiota, você bateu!"
-        explode 27 ((carColumn playerCar)-2) 6
+        id <- forkIO (explode 27 ((carColumn playerCar)-2) 6 100) 
         a<-getChar
+        killThread id
         setCursorPosition (screenHeight+1) 0
         exitSuccess
     else return ()
@@ -61,7 +63,7 @@ maybeSpawnANewIncomingCar incomingCarList currentTime = do
         newCar i j= Car {
                 carRow = i,
                 carColumn = j,
-                carColor = [Black, Red, Green, Yellow, Blue, Cyan] !! ((currentTime `div` 5) `mod` 6)
+                carColor = [Black, Red, Green, Yellow, Blue, Cyan] !! (j `mod` 6)
             }
 
 
@@ -85,19 +87,31 @@ updateIncomingCarPositions (x:xs)
             carColor  = carColor  car
           }
 
-updateCop  Nothing      positionHistory time incomingCars = do
-    drawCop positionHistory (screenHeight - carRow playerCar - 3) time
+removeCollidingCars [] = return ()
+removeCollidingCars ((isColliding,car):xs)
+    | isColliding = do 
+        eraseCar car
+        removeCollidingCars xs
+    | otherwise = removeCollidingCars xs
 
-updateCop (Just copCar) positionHistory time incomingCars =
-    let
-        newDistance = carRow copCar - carRow playerCar - (if time `mod` copVerticalMovementPeriod == 0 then 1 else 0)
-    in do
+updateCop Nothing positionHistory time incomingCars = do
+    copCar <- drawCop positionHistory (screenHeight - carRow playerCar) time
+    return (copCar,incomingCars)
+
+updateCop (Just copCar) positionHistory time incomingCars = do
+    collidingCar <- return $ find (checkCollision copCar) incomingCars
     eraseCar copCar
-    if or (map (checkCollision copCar) incomingCars)
-        then return Nothing
-    else
-        drawCop positionHistory newDistance time
-    
+    if isJust collidingCar
+        then do
+            eraseCar (fromJust collidingCar)
+            incomingCars <- return (incomingCars \\ [fromJust collidingCar])
+            explode (carRow copCar) ((carColumn copCar)-2) 6 10 
+            return (Nothing, incomingCars)
+    else do
+        copCar <- drawCop positionHistory newDistance time
+        return (copCar, incomingCars)
+    where 
+        newDistance = carRow copCar - carRow playerCar - (if time `mod` copVerticalMovementPeriod == 0 then 1 else 0)
     
 
 drawCop positionHistory distance time =
@@ -181,6 +195,7 @@ prepareConsole = do
     hideCursor
     clearScreen
     setCursorPosition 0 0
+
 explodeLine row column 0 = do
     return ()
 
@@ -195,9 +210,28 @@ explodeBlock row column count count2 = do
     explodeLine row column count
     explodeBlock (row+1) column count (count2-1)
 
-explode row column size = do
+    
+clearL row column 0 = do
+    return ()
+
+clearL row column count = do
+    applySGRToCell [] row column
+    clearL row (column+1) (count-1)
+
+clearBlock row column count 0= do
+    return ()
+
+clearBlock row column count count2 = do
+    clearL row column count
+    clearBlock (row+1) column count (count2-1)
+
+explode row column size 0 = do
+    clearBlock row column size size
+    return()
+explode row column size ticks = do
     explodeBlock row column size size
-    explode row column size
+    threadDelay tickPeriod
+    explode row column size (ticks-1)
 
 randomColor row column = do
     rn <- randomChance
@@ -231,4 +265,4 @@ data Car = Car {
     carRow    :: Int,
     carColumn :: Int,
     carColor  :: Color
-}
+} deriving (Eq)
