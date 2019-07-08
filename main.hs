@@ -95,7 +95,7 @@ removeCollidingCars ((isColliding,car):xs)
     | otherwise = removeCollidingCars xs
 
 updateCop Nothing positionHistory time incomingCars = do
-    copCar <- drawCop positionHistory (screenHeight - carRow playerCar) time
+    copCar <- drawCop positionHistory (screenHeight - carRow playerCar - 3) time
     return (copCar,incomingCars)
 
 updateCop (Just copCar) positionHistory time incomingCars = do
