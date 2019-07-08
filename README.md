@@ -10,8 +10,8 @@ Playing instructions:
 TODO
 ------------
 
-- ask user to resize their terminal window before starting the game.
-    "Please resize your terminal window to 80x43. (Current size: mxn.)"
+- ask the user to resize their terminal window before starting the game.  
+    "Please resize your terminal window to 80x43. (Current size: mxn.)"  
     "Done! Press any button to start." (And show playing instructions below.)
 
 - allow controlling the car with the arrow keys.
