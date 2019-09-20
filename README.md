@@ -17,3 +17,5 @@ TODO
 - allow controlling the car with the arrow keys.
 
 - add sounds?
+
+- turn cars black when they explode.
