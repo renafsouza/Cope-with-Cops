@@ -1,11 +1,13 @@
-Your goal is to survive as long as you can. To do that, you'll have to trick the cops into crashing into other cars.
+Your goal is to not get caught by the cops. They are faster than you, so you'll have to trick them into crashing into other cars.
 
 Written by [renafsouza](https://github.com/renafsouza) and I for college.
 
 Playing instructions:
-1. Maximize your terminal window. (Most importantly, make it at least 43 rows high.)
-2. Run ```runghc main.hs```. (Compiling the game with `ghc` causes it to lose its explosion effects, for some reason.)
+1. Maximize your terminal window. (Make it at least 43-row high.)
+2. Run ```runghc Main```. (Compiling the game with `ghc` causes it to lose its explosion effects, for some reason.)
 3. Use the `A` and `D` keys to steer.
+
+[Here](example_gameplay.mp4?raw=true)'s a demo.
 
 TODO
 ------------
@@ -17,3 +19,5 @@ TODO
 - allow controlling the car with the arrow keys.
 
 - add sounds?
+
+- turn cars black when they explode.
